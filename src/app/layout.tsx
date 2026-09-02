@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/portfolio";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/portfoliolatest";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? profile.siteUrl;
 
 export const metadata: Metadata = {

@@ -5,7 +5,7 @@ import { projects } from "@/data/projects";
 export const dynamic = "force-static";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? profile.siteUrl;
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/portfolio";
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/portfoliolatest";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = `${siteUrl}${basePath}`;

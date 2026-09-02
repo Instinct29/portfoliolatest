@@ -2,7 +2,7 @@
 
 A production-grade personal portfolio for **Manthan Gour**, Senior Software Developer / Frontend Engineer. Built with Next.js, TypeScript, Tailwind CSS, and Framer Motion. Deployed as a static site on GitHub Pages.
 
-**Live URL (after deployment):** [https://instinct29.github.io/portfolio/](https://instinct29.github.io/portfolio/)
+**Live URL:** [https://instinct29.github.io/portfoliolatest/](https://instinct29.github.io/portfoliolatest/)
 
 ## Preview
 
@@ -114,7 +114,7 @@ git push -u origin main
 For a repository named `portfolio` under `Instinct29`:
 
 ```
-https://instinct29.github.io/portfolio/
+https://instinct29.github.io/portfoliolatest/
 ```
 
 ## Custom Domain
@@ -139,7 +139,7 @@ When moving from `/portfolio` subpath to a root custom domain, update:
 
 | Variable | Default (production) | Description |
 |----------|---------------------|-------------|
-| `NEXT_PUBLIC_BASE_PATH` | `/portfolio` | Asset and route prefix |
+| `NEXT_PUBLIC_BASE_PATH` | `/portfoliolatest` | Asset and route prefix |
 | `NEXT_PUBLIC_SITE_URL` | `https://instinct29.github.io` | Canonical site URL |
 
 For local development, basePath is empty by default.

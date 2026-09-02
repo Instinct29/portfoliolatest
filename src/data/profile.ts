@@ -14,7 +14,7 @@ export const profile: Profile = {
   availability: "Immediate",
   workPreference: "Remote-friendly / open to suitable opportunities",
   resumePath: "/resume.pdf",
-  siteUrl: "https://instinct29.github.io/portfolio",
+  siteUrl: "https://instinct29.github.io/portfoliolatest",
 };
 
 export const metrics = [
