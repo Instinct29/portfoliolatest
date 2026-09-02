@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 250 249 247;
+  --foreground: 26 26 26;
+  --muted: 243 242 239;
+  --muted-foreground: 107 107 107;
+  --border: 229 228 224;
+  --accent: 13 110 110;
+  --accent-foreground: 255 255 255;
+  --card: 255 255 255;
+  --card-foreground: 26 26 26;
+  --ring: 13 110 110;
+  --hero-glow: rgba(13, 110, 110, 0.06);
+}
+
+.dark {
+  --background: 15 15 15;
+  --foreground: 237 237 237;
+  --muted: 26 26 26;
+  --muted-foreground: 154 154 154;
+  --border: 42 42 42;
+  --accent: 45 212 191;
+  --accent-foreground: 15 15 15;
+  --card: 22 22 22;
+  --card-foreground: 237 237 237;
+  --ring: 45 212 191;
+  --hero-glow: rgba(45, 212, 191, 0.04);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  ::selection {
+    background-color: rgb(var(--accent) / 0.2);
+    color: rgb(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .section-number {
+    @apply font-mono text-sm tracking-wider text-muted-foreground;
+  }
+
+  .link-underline {
+    @apply relative inline-flex items-center gap-1 transition-colors hover:text-accent;
+  }
+
+  .link-underline::after {
+    content: "";
+    @apply absolute bottom-0 left-0 h-px w-0 bg-accent transition-all duration-300;
+  }
+
+  .link-underline:hover::after {
+    @apply w-full;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
