@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Claymango">
+  <rect width="64" height="64" rx="14" fill="#C45C26"/>
+  <path fill="#F8E7D8" d="M18 42c0-10 6.5-18 14-18s14 8 14 18H18zm14-24c5.5 0 10 4.5 10 10h-4a6 6 0 0 0-12 0h-4c0-5.5 4.5-10 10-10z"/>
+</svg>

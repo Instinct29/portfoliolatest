@@ -26,11 +26,29 @@ Open [http://localhost:3000](http://localhost:3000).
 Copy `.env.example` to `.env.local`:
 
 ```bash
+cp .env.example .env.local
+```
+
+Then set your Gemini key (create one at [Google AI Studio](https://aistudio.google.com/apikey)):
+
+```bash
 GOOGLE_AI_API_KEY=your_gemini_api_key
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-The chatbot works when `GOOGLE_AI_API_KEY` is set. Without it, the site still loads and the chatbot shows a graceful unavailable message.
+**Supported env var names** (any one works):
+
+| Variable | Notes |
+|----------|-------|
+| `GOOGLE_AI_API_KEY` | Preferred name in this repo |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Common in Vercel / Google SDK docs |
+| `GEMINI_API_KEY` | Also accepted |
+
+Optional: `CHAT_GEMINI_MODEL` (default `gemini-3.5-flash-lite`). Use this name so a global `GEMINI_MODEL` on your machine does not override the portfolio chat.
+
+Restart `npm run dev` after editing `.env.local`. The chatbot calls `POST /api/chat`, which streams replies from Gemini using `data/agent-memory.md` as its system prompt.
+
+Without a valid API key, the site still loads; MG Assistant shows a generic “having trouble connecting” message instead of exposing server errors.
 
 ## Scripts
 
@@ -69,9 +87,18 @@ Set `contactEmail` in `lib/siteLinks.ts`. When empty, LinkedIn is used as the pr
 
 1. Push to GitHub: `Instinct29/portfoliolatest`
 2. Import the repository in [Vercel](https://vercel.com/new)
-3. Add environment variable: `GOOGLE_AI_API_KEY`
-4. Optionally set `NEXT_PUBLIC_SITE_URL` to your production URL
-5. Deploy
+3. **Settings → Environment Variables** → add `GOOGLE_AI_API_KEY` with your [Google AI Studio](https://aistudio.google.com/apikey) key
+   - Enable it for **Production** (and Preview if you test preview URLs)
+   - No quotes around the value; no trailing spaces
+4. **Redeploy** after saving env vars (Deployments → ⋮ → Redeploy). New variables are not picked up by an old deployment.
+5. Optionally set `NEXT_PUBLIC_SITE_URL` to your production URL
+
+**If MG Assistant still says “having trouble connecting”:**
+
+- Confirm the key is set on the **same Vercel project** that serves the site
+- Redeploy after adding or changing the key
+- In Vercel → Project → Logs, filter `/api/chat` and look for `Chat unavailable` or `Chat generation failed`
+- Ensure the Generative Language API is enabled for the Google Cloud project tied to your key
 
 GitHub Pages is no longer used — the chatbot requires server-side API routes.
 

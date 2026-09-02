@@ -1,17 +1,24 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { getAllWorkProjects } from "@/lib/workData";
 import { sideProjects } from "@/lib/projectsData";
-import { sideProjectToCard } from "@/lib/projectCards";
+import { sideProjectToCard, workProjectToCard } from "@/lib/projectCards";
 import ProjectPreviewCard from "./ProjectPreviewCard";
 import Section from "@/components/layout/Section";
 
 export default function Projects() {
+  const work = getAllWorkProjects();
+  const all = [
+    ...work.map(({ org, project }) => workProjectToCard(org.slug, project)),
+    ...sideProjects.map((p) => sideProjectToCard(p)),
+  ];
+
   return (
     <Section
       id="projects"
       number="02"
-      label="Side Projects"
-      title="Things I build for fun"
+      label="Projects"
+      title="Everything I've shipped"
       width="reading"
       action={
         <Link href="/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -20,8 +27,8 @@ export default function Projects() {
       }
     >
       <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        {sideProjects.map((p) => (
-          <ProjectPreviewCard key={p.id} project={sideProjectToCard(p)} />
+        {all.map((p) => (
+          <ProjectPreviewCard key={p.id} project={p} />
         ))}
       </div>
     </Section>

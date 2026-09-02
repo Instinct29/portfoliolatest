@@ -11,10 +11,15 @@ import { ExternalLink, ArrowUpRight } from "lucide-react";
 export function EmploymentTag({
   employment,
 }: {
-  employment?: "full-time" | "contract";
+  employment?: "full-time" | "contract" | "internship";
 }) {
   if (!employment) return null;
-  const label = employment === "full-time" ? "Full-time" : "Contract";
+  const label =
+    employment === "full-time"
+      ? "Full-time"
+      : employment === "internship"
+        ? "Internship"
+        : "Contract";
   return (
     <span className="inline-flex items-center rounded-sm border border-border-strong px-1.5 py-0.5 font-mono text-2xs uppercase tracking-label text-muted-foreground">
       {label}

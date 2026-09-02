@@ -228,9 +228,26 @@ const validateEmailContent = (subject: string, body: string): boolean => {
   );
 };
 
+const resolveGeminiApiKey = (): string | undefined => {
+  const raw =
+    process.env.GOOGLE_AI_API_KEY ??
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
+    process.env.GEMINI_API_KEY;
+  const key = raw?.trim();
+  return key || undefined;
+};
+
+const resolveGeminiModel = (): string =>
+  process.env.CHAT_GEMINI_MODEL?.trim() ||
+  process.env.GEMINI_MODEL?.trim() ||
+  "gemini-3.5-flash-lite";
+
 const initializeGoogleAI = () => {
-  const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey = resolveGeminiApiKey();
   if (!apiKey) {
+    console.error(
+      "Chat unavailable: set GOOGLE_AI_API_KEY (or GOOGLE_GENERATIVE_AI_API_KEY) in the environment."
+    );
     throw new Error("CHAT_UNAVAILABLE");
   }
   return new GoogleGenerativeAI(apiKey);
@@ -332,7 +349,7 @@ export async function POST(request: NextRequest) {
       try {
         const genAI = initializeGoogleAI();
         const model = genAI.getGenerativeModel({
-          model: "gemini-2.5-flash-lite",
+          model: resolveGeminiModel(),
           // The scope contract lives here, not in the prompt text sent per
           // request: `systemInstruction` is a separate channel the SDK keeps
           // apart from user content, so a visitor's message cannot pose as a
@@ -580,6 +597,11 @@ export async function POST(request: NextRequest) {
         // business reaching a visitor. Log the real error server-side and
         // send a generic, friendly line over SSE instead.
         console.error("Chat generation failed:", error);
+        if (error instanceof Error && error.message === "CHAT_UNAVAILABLE") {
+          console.error(
+            "MG Assistant needs a Gemini API key. Add GOOGLE_AI_API_KEY in Vercel and redeploy."
+          );
+        }
         await writer.write(
           encoder.encode(
             `data: ${JSON.stringify({

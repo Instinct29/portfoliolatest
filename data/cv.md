@@ -13,6 +13,14 @@ Jaipur, India | github.com/Instinct29 | linkedin.com/in/manthan-gour
 
 ## EXPERIENCE
 
+### Independent Software Developer (Contract / Freelance)
+Apr 2025 – Present | Remote
+
+- Built API-driven property listing and filtering interfaces for **Property Finder**.
+- Implemented puja booking workflows and onboarding for **ImAvatar**.
+
+Stack: React, Next.js, TypeScript, Tailwind CSS, REST APIs
+
 ### Software Developer — HashTrust Technologies Pvt. Ltd. (Full-time)
 Sep 2022 – Apr 2025 | Gurugram, India
 
@@ -24,13 +32,14 @@ Production frontend systems for fintech and AI-oriented products.
 
 Stack: React, Next.js, TypeScript, Redux, TanStack Query, Node.js, PostgreSQL, Redis
 
-### Independent Software Developer (Contract / Freelance)
-Apr 2025 – Present | Remote
+### Web Developer Intern — Claymango
+Mar 2021 – Oct 2021 | Remote
 
-- Built API-driven property listing and filtering interfaces for **Property Finder**.
-- Implemented puja booking workflows and onboarding for **ImAvatar**.
+- Improved seller onboarding journeys and translated product requirements into shipped updates.
+- Wireframed a seller dashboard and iterated from user interviews and feedback.
+- Wrote user stories and coordinated engineering delivery for platform features.
 
-Stack: React, Next.js, TypeScript, Tailwind CSS, REST APIs
+Stack: React, JavaScript, product discovery, wireframing
 
 ---
 
