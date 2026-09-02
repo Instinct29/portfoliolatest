@@ -81,4 +81,3 @@ Set `NEXT_PUBLIC_SITE_URL` to your custom domain in Vercel environment variables
 
 ## License
 
-This project is based on the MIT-licensed [shashwa7-dev/portfolio](https://github.com/shashwa7-dev/portfolio) template. The original MIT license and copyright notice are preserved in `LICENSE`.

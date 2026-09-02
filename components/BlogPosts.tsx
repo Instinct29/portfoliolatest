@@ -21,6 +21,14 @@ export function BlogPosts() {
     new Date(a.metadata.publishedAt) > new Date(b.metadata.publishedAt) ? -1 : 1
   );
 
+  if (posts.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No posts yet. Check back soon.
+      </p>
+    );
+  }
+
   return (
     // `divide-y` only, no `border-y`. Rules framing the list top and bottom are
     // pure decoration at one post, since there is nothing between to separate.

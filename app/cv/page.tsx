@@ -7,7 +7,7 @@ import { baseUrl } from "@/app/sitemap";
 import { ogUrl, breadcrumbLd } from "@/lib/seo";
 import { parseCv, inlineHtml, type CvBlock } from "@/lib/cv";
 
-const PDF = "/shashwat-tripathi-cv.pdf";
+const PDF = "/resume.pdf";
 
 /**
  * The wave along the top and bottom of the sheet.
