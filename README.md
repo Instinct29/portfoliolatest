@@ -1,4 +1,4 @@
-# Manthan Gour — Engineering Portfolio
+# Manthan Gour —  Portfolio
 
 A production-grade personal portfolio for **Manthan Gour**, Senior Software Developer / Frontend Engineer. Built with Next.js, TypeScript, Tailwind CSS, and Framer Motion. Deployed as a static site on GitHub Pages.
 
