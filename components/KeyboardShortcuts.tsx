@@ -1,0 +1,164 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { X, Command } from "lucide-react";
+import { backdropFadeVariants } from "@/lib/motionVariants";
+import { useDarkMode } from "@/app/hooks/useDarkMode";
+import { goToShortcuts, shortcutGroups, MOD_KEY } from "@/lib/shortcutsData";
+
+function isTypingTarget(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+}
+
+export default function KeyboardShortcuts() {
+  const router = useRouter();
+  const { toggleDarkMode } = useDarkMode();
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  /**
+   * Resolves MOD_KEY for display. Detected after mount, because `navigator` does
+   * not exist during server render. The default matches what the palette's own
+   * listener already accepts on either platform, so a visitor never sees a key
+   * that does not work, only the less familiar name for a moment.
+   */
+  const [isApple, setIsApple] = useState(true);
+  useEffect(() => {
+    setIsApple(/Mac|iPhone|iPad|iPod/.test(navigator.userAgent));
+  }, []);
+
+  // `g`-prefix state lives in refs so the listener stays stable.
+  const gPending = useRef(false);
+  const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Esc closes the overlay and cancels any pending sequence.
+      if (e.key === "Escape") {
+        setHelpOpen(false);
+        gPending.current = false;
+        return;
+      }
+
+      // Skip while typing or when a modifier is held (Cmd+K is handled elsewhere).
+      if (isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // Second key of a `g` sequence: jump to a destination.
+      if (gPending.current) {
+        gPending.current = false;
+        if (gTimer.current) clearTimeout(gTimer.current);
+        const dest = goToShortcuts.find((g) => g.key === e.key.toLowerCase());
+        if (dest) {
+          e.preventDefault();
+          setHelpOpen(false);
+          router.push(dest.href);
+        }
+        return;
+      }
+
+      if (e.key === "g") {
+        gPending.current = true;
+        if (gTimer.current) clearTimeout(gTimer.current);
+        gTimer.current = setTimeout(() => (gPending.current = false), 1200);
+        return;
+      }
+
+      if (e.key === "t") {
+        e.preventDefault();
+        toggleDarkMode();
+        return;
+      }
+
+      if (e.key === "?") {
+        e.preventDefault();
+        setHelpOpen((o) => !o);
+      }
+    };
+
+    const onOpen = () => setHelpOpen(true);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("open-shortcuts", onOpen as EventListener);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("open-shortcuts", onOpen as EventListener);
+    };
+  }, [router, toggleDarkMode]);
+
+  return (
+    <AnimatePresence>
+      {helpOpen && (
+        <motion.div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4"
+          variants={backdropFadeVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          onClick={() => setHelpOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Keyboard shortcuts"
+        >
+          <div
+            className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-border-strong bg-elevated shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <span className="font-mono text-xs uppercase tracking-label text-subtle">
+                Keyboard shortcuts
+              </span>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(false)}
+                aria-label="Close"
+                className="text-subtle transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-[0.94]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-4 p-4">
+              {shortcutGroups.map((group) => (
+                <div key={group.title}>
+                  <div className="px-1 pb-2 font-mono text-2xs uppercase tracking-label text-subtle">
+                    {group.title}
+                  </div>
+                  <ul className="space-y-1.5">
+                    {group.items.map((s) => (
+                      <li
+                        key={s.label}
+                        className="flex items-center justify-between px-1 text-sm text-foreground"
+                      >
+                        <span>{s.label}</span>
+                        <span className="flex items-center gap-1">
+                          {s.keys.map((k, i) => (
+                            <kbd
+                              key={i}
+                              className="grid h-6 min-w-[24px] place-items-center rounded-md border border-border-strong bg-card px-1.5 font-mono text-xs text-muted-foreground"
+                            >
+                              {/* The command key is lucide's icon rather than the
+                                  ⌘ character, so it shares a stroke weight with
+                                  the rest of the UI instead of rendering at
+                                  whatever the first font with that codepoint
+                                  gives it. Ctrl has no glyph, so it stays text. */}
+                              {k === MOD_KEY ? (
+                                isApple ? <Command className="h-3 w-3" /> : "Ctrl"
+                              ) : (
+                                k
+                              )}
+                            </kbd>
+                          ))}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

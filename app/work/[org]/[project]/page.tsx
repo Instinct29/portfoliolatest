@@ -1,0 +1,232 @@
+"use client";
+
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft, ArrowUpRight, ExternalLink, Play } from "lucide-react";
+import {  getOrganization, getProjectFromOrg } from "@/lib/workData";
+import { ActiveBadge } from "@/components/common/ActiveBadge";
+import StackIcon from "@/components/common/StackIcon";
+import VideoModal from "@/components/common/VideoModal";
+import Container from "@/components/layout/Container";
+import { motion } from "motion/react";
+import { useState } from "react";
+import { slideUpVariants, stagger } from "@/lib/motionVariants";
+
+export default function WorkProjectPage({
+  params,
+}: {
+  params: { org: string; project: string };
+}) {
+  const { org: orgSlug, project: projectSlug } = params;
+  const org = getOrganization(orgSlug);
+  const project = getProjectFromOrg(orgSlug, projectSlug);
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  if (!org || !project) {
+    notFound();
+  }
+
+  const stack = [...(project.stack.fe || []), ...(project.stack.be || [])];
+
+  return (
+    <main className="min-h-screen py-8 md:py-12">
+      <Container width="reading" className="space-y-8">
+        {/* Back link */}
+        <Link
+          href={`/work/${org.slug}`}
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-[color,transform] duration-150 ease-out active:scale-[0.97]"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to {org.name}
+        </Link>
+
+        {/* Header */}
+        <motion.div
+          variants={slideUpVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-4"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                {project.isActive && (
+                  <ActiveBadge label="Active Project" />
+                )}
+                {project.date && (
+                  <span className="text-sm text-muted-foreground">
+                    {project.date}
+                  </span>
+                )}
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight">
+                {project.title}
+              </h1>
+            </div>
+          </div>
+
+          {/* Organization badge — links back to /work/[org] */}
+          <Link
+            href={`/work/${org.slug}`}
+            className="group inline-flex items-center gap-2 self-start rounded-lg border border-border bg-card px-2.5 py-1.5 transition-colors hover:border-border-strong"
+          >
+            {/* Was a raw <img>, which is also why this logo escaped the
+                greyscale sweep: that pass walked `next/image` call sites. */}
+            <span className="relative h-5 w-5 shrink-0 overflow-hidden rounded-md bg-elevated">
+              <Image
+                src={org.logo}
+                alt={org.name}
+                fill
+                sizes="20px"
+                className="object-cover grayscale transition-[filter] duration-base ease-out group-hover:grayscale-0"
+              />
+            </span>
+            <span className="text-sm text-muted-foreground transition-colors group-hover:text-foreground">
+              Built at <span className="font-semibold text-foreground">{org.name}</span>
+            </span>
+            <ArrowUpRight className="h-3.5 w-3.5 text-subtle transition-[color,transform] duration-base ease-out group-hover:-translate-y-0.5 group-hover:text-foreground" />
+          </Link>
+        </motion.div>
+
+        {/* Thumbnail / Video */}
+        <motion.div
+          variants={slideUpVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: stagger.loose }}
+          className="relative aspect-video rounded-lg overflow-hidden bg-secondary group"
+        >
+          <Image
+            src={project.thumbnail}
+            alt={project.title}
+            fill
+            className="object-cover grayscale transition-[filter] duration-base ease-out group-hover:grayscale-0"
+            priority
+          />
+          {project.preview && (
+            <button
+              onClick={() => setVideoOpen(true)}
+              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <div className="flex items-center gap-2 rounded-md bg-white px-4 py-2 text-black font-medium">
+                <Play className="w-5 h-5 fill-current" />
+                Watch Preview
+              </div>
+            </button>
+          )}
+        </motion.div>
+
+        {/* Description */}
+        <motion.div
+          variants={slideUpVariants}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: stagger.loose * 2 }}
+          className="space-y-6"
+        >
+          <p className="text-muted-foreground leading-relaxed">
+            {project.description}
+          </p>
+
+          {/* Highlights */}
+          {project.highlights && project.highlights.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-label">
+                Key Features
+              </h2>
+              <ul className="space-y-2">
+                {project.highlights.map((highlight, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-start gap-3 text-sm text-muted-foreground"
+                  >
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-foreground shrink-0" />
+                    <span>{highlight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Tech Stack */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-label">
+              Tech Stack
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {stack.map((tech) => (
+                <StackIcon key={tech} name={tech} showLabel />
+              ))}
+            </div>
+          </div>
+
+          {/* Links */}
+          {project.links && Object.keys(project.links).length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-label">
+                Links
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                {project.links.web && (
+                  <a
+                    href={project.links.web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm transition-[color,background-color,transform] duration-fast ease-out hover:bg-secondary/80 active:scale-[0.97]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Visit Website
+                  </a>
+                )}
+                {project.links.github && (
+                  <a
+                    href={project.links.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm transition-[color,background-color,transform] duration-fast ease-out hover:bg-secondary/80 active:scale-[0.97]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    GitHub
+                  </a>
+                )}
+                {project.links.twitter && (
+                  <a
+                    href={project.links.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm transition-[color,background-color,transform] duration-fast ease-out hover:bg-secondary/80 active:scale-[0.97]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Twitter
+                  </a>
+                )}
+                {project.links.opensea && (
+                  <a
+                    href={project.links.opensea}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-sm transition-[color,background-color,transform] duration-fast ease-out hover:bg-secondary/80 active:scale-[0.97]"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    OpenSea
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </Container>
+
+      {/* Video Modal */}
+      {project.preview && (
+        <VideoModal
+          isOpen={videoOpen}
+          onClose={() => setVideoOpen(false)}
+          videoUrl={project.preview}
+          title={project.title}
+        />
+      )}
+    </main>
+  );
+}

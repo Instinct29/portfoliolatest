@@ -1,0 +1,649 @@
+"use client";
+
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { X, Send, Copy, Check, ArrowDown, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import MarkdownMessage from "./chat/MarkdownMessage";
+import { cn } from "@/lib/utils";
+import {
+  parseChatFrame,
+  resolveReply,
+  takeCompleteLines,
+} from "@/lib/chatStream";
+import { CONNECTION_TROUBLE } from "@/lib/chatMessages";
+import IconSwap from "@/components/common/IconSwap";
+import AgentMark from "@/components/common/AgentMark";
+import {
+  popoverUpVariants,
+  fabPopVariants,
+  chatWindowVariants,
+  slideUpVariants,
+  pillUpVariants,
+  hoverLiftRotate,
+  tapPress,
+  stagger,
+} from "@/lib/motionVariants";
+
+const TIMEOUT_DURATION = 10000;
+const NOTIFICATION_MESSAGES = [
+  "Hello, I'm MG Assistant.",
+  "Got questions? Ask me!",
+];
+const TYPE_SPEED = 100;
+const MESSAGE_DISPLAY_TIME = 5000;
+const TRANSITION_DELAY = 1000;
+
+interface EmailState {
+  step: "email" | "subject" | "body" | "verify";
+  data: {
+    email?: string;
+    subject?: string;
+    body?: string;
+  };
+}
+
+const S7Bot = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<
+    { role: "user" | "assistant"; content: string }[]
+  >([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [notificationText, setNotificationText] = useState("");
+  const [showNotification, setShowNotification] = useState(false);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [emailState, setEmailState] = useState<EmailState | null>(null);
+
+  const chatWindowRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-scroll lock — only nudge to bottom when the user is already there.
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  /**
+   * Both of these are `useCallback` with empty deps so their identity is stable.
+   * `handleClose` is used inside the click-outside effect below, and with an
+   * unstable identity it had to be left out of that effect's dependency array,
+   * which meant the listener closed over the first render's copy. Only refs and
+   * setters are touched here, so an empty dep list is correct rather than a
+   * shortcut. The same fix was applied to the theme toggle for the same reason.
+   */
+  const cleanup = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsStreaming(false);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    cleanup();
+    setIsOpen(false);
+    setEmailState(null);
+  }, [cleanup]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  // Track whether the user is pinned to the bottom (within 24px slack).
+  const onMessagesScroll = () => {
+    const el = chatWindowRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+    setIsAtBottom(atBottom);
+  };
+
+  useEffect(() => {
+    if (isAtBottom) scrollToBottom();
+  }, [messages, isAtBottom, scrollToBottom]);
+
+  const handleCopy = async (content: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 1500);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        chatContainerRef.current &&
+        !chatContainerRef.current.contains(event.target as Node)
+      ) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, handleClose]);
+
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
+
+  const sendMessage = async (msg: string) => {
+    if (!msg.trim() || isStreaming) return;
+
+    cleanup();
+
+    setMessages((prev) => [...prev, { role: "user", content: msg }]);
+    setMessage("");
+
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+    setIsStreaming(true);
+
+    abortControllerRef.current = new AbortController();
+
+    timeoutRef.current = setTimeout(() => {
+      cleanup();
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { role: "assistant", content: "Request timed out. Please try again." },
+      ]);
+    }, TIMEOUT_DURATION);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: msg,
+          model: "gemini-pro",
+          emailState: emailState,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) throw new Error("Stream error");
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = "";
+      // Held rather than thrown. This used to be `throw new Error(data.error)`
+      // inside the same try whose catch guarded JSON.parse, so the route's
+      // error frame was caught two lines later, logged, and dropped: the
+      // visitor got an assistant bubble with nothing in it. It is now carried
+      // to the end of the stream and handed to resolveReply, which decides
+      // between it and whatever text did arrive.
+      let serverError: string | null = null;
+      // Carries the half of a frame that a read ended in the middle of. See
+      // takeCompleteLines: a frame is not guaranteed to arrive in one piece,
+      // and parsing each read on its own loses both halves of any that got
+      // cut, which reads as a sentence missing from the middle of an answer.
+      let buffer = "";
+      let streamEnded = false;
+
+      stream: while (!streamEnded) {
+        const { done, value } = await reader.read();
+        streamEnded = done;
+        if (value) buffer += decoder.decode(value, { stream: true });
+
+        const { lines, rest } = takeCompleteLines(buffer, streamEnded);
+        buffer = rest;
+
+        for (const line of lines) {
+          const frame = parseChatFrame(line);
+          if (!frame) continue;
+
+          // Labelled break, not the `return` this used to be: returning here
+          // skipped the settle below, which is the whole reason a finished
+          // stream can no longer leave the bubble empty.
+          if (frame.done) break stream;
+
+          if (frame.error) {
+            serverError = frame.error;
+            continue;
+          }
+
+          if (frame.emailState !== undefined) {
+            setEmailState(frame.emailState as EmailState | null);
+          }
+
+          if (frame.text) {
+            accumulatedContent += frame.text;
+            setMessages((prev) => [
+              ...prev.slice(0, -1),
+              { role: "assistant", content: accumulatedContent },
+            ]);
+          }
+        }
+      }
+
+      // Settle the bubble. Text streamed in stays exactly as it was; the only
+      // case this changes anything is a stream that produced none, which is
+      // the empty bubble this whole path exists to make impossible.
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        {
+          role: "assistant",
+          content: resolveReply({
+            accumulated: accumulatedContent,
+            errorText: serverError,
+          }),
+        },
+      ]);
+    } catch (error: any) {
+      console.error("Stream error:", error);
+      if (error.name !== "AbortError") {
+        setMessages((prev) => [
+          ...prev.slice(0, -1),
+          {
+            role: "assistant",
+            // The same line the route sends, so a failure reads identically
+            // whether it was the network here or the model there.
+            content: CONNECTION_TROUBLE,
+          },
+        ]);
+      }
+    } finally {
+      cleanup();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(message);
+  };
+
+  const _cleanup_notification = () => {
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setNotificationText("");
+    setShowNotification(false);
+  };
+
+  const typeMessage = async (text: string) => {
+    setShowNotification(true);
+    setNotificationText("");
+
+    const typeNextChar = (currentText: string, fullText: string) => {
+      if (currentText.length < fullText.length) {
+        const nextChar = fullText[currentText.length];
+        const newText = currentText + nextChar;
+        setNotificationText(newText);
+
+        typingTimerRef.current = setTimeout(() => {
+          typeNextChar(newText, fullText);
+        }, TYPE_SPEED);
+      } else {
+        timeoutRef.current = setTimeout(() => {
+          setShowNotification(false);
+          setTimeout(() => {
+            setCurrentMessageIndex(
+              (prev) => (prev + 1) % NOTIFICATION_MESSAGES.length
+            );
+          }, TRANSITION_DELAY);
+        }, MESSAGE_DISPLAY_TIME);
+      }
+    };
+
+    typeNextChar("", text);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      _cleanup_notification();
+      return;
+    }
+
+    const startNewMessage = () => {
+      _cleanup_notification();
+      const nextMessage = NOTIFICATION_MESSAGES[currentMessageIndex];
+      typeMessage(nextMessage);
+    };
+
+    startNewMessage();
+
+    return () => _cleanup_notification();
+  }, [currentMessageIndex, isOpen]);
+
+  return (
+    <div className="fixed bottom-4 right-4 -md:right-2.5 z-50">
+      {/* Notification bubble */}
+      <AnimatePresence>
+        {!isOpen && showNotification && (
+          <motion.div
+            variants={popoverUpVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed bottom-[60px] right-4 -md:right-2.5 -md:hidden"
+          >
+            <div className="rounded-lg border border-border-strong bg-card shadow-md px-3 py-2 max-w-[200px]">
+              <p className="text-xs text-card-foreground">
+                {notificationText}
+                <span className="ml-0.5 animate-blink">|</span>
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FAB Button */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            variants={fabPopVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            whileHover={hoverLiftRotate}
+            whileTap={tapPress}
+            onClick={() => setIsOpen(true)}
+            className="group fixed bottom-4 right-4 -md:right-2.5 grid h-12 w-12 place-items-center rounded-2xl bg-white shadow-lg ring-1 ring-border-strong"
+          >
+            {/* An inline mark rather than a raster. It draws in `currentColor`, so
+                it is monochrome by construction and needs no greyscale class, and
+                it is sharp at any size instead of being a 49KB JPEG scaled into a
+                48px button.
+
+                `place-items-center` rather than `object-cover`: the artwork is a
+                line drawing with its own breathing room, so filling the button
+                edge to edge would crop the headset. That also retires the
+                `overflow-hidden` the bleed used to need.
+
+                Two older problems are gone with the file itself: the reduced-motion
+                caveat from when this was an animated GIF, whose loop CSS cannot
+                pause, and a `./truffycc.png` relative path that 404'd on every
+                nested route because this FAB mounts globally from the layout. */}
+            <AgentMark className="h-9 w-auto text-black" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Chat Window */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            ref={chatContainerRef}
+            variants={chatWindowVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="w-[360px] max-h-[520px] rounded-2xl border border-border bg-elevated shadow-2xl flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-2">
+                <div className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-lg bg-white">
+                  <AgentMark className="h-6 w-auto text-black" />
+                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
+                </div>
+                <div>
+                  <h3 className="text-base leading-tight text-foreground">
+                    MG Assistant
+                  </h3>
+                  <p className="font-mono text-2xs uppercase tracking-label text-subtle">
+                    Gemini 2.5 Flash
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleClose}
+                className="rounded-lg p-1.5 hover:bg-elevated text-muted-foreground transition-[color,background-color,transform] duration-150 ease-out active:scale-[0.94]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="relative flex-1">
+              {/* Watermark. Painted as a mask over `bg-foreground` for the same
+                  reason the header's mark is: the asset is one flat colour on
+                  transparency, so as an <img> it would stay near-black and sink
+                  into the dark theme.
+
+                  It sits in the corner at 64px rather than filling the panel.
+                  A large centred mark would be behind the conversation, and
+                  every message would cross it; in a 360px column that reads as
+                  interference rather than as stationery. The opacity is doubled
+                  in dark mode because the same 5% reads far weaker as light ink
+                  on a dark ground than as dark ink on a light one.
+
+                  No z-index anywhere. The scroll container below is `relative`
+                  and comes later in the DOM, which is enough to paint it over
+                  an absolutely positioned sibling, and the "new messages" pill
+                  is later still. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute bottom-3 right-3 h-16 w-16 bg-foreground opacity-5 dark:opacity-10"
+                style={{
+                  WebkitMaskImage: "url(/brand-mark.png)",
+                  maskImage: "url(/brand-mark.png)",
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskPosition: "center",
+                  maskPosition: "center",
+                }}
+              />
+              <div
+                ref={chatWindowRef}
+                onScroll={onMessagesScroll}
+                className="relative h-full overflow-y-auto p-3 space-y-3 min-h-[280px] max-h-[340px]"
+              >
+              {messages.length === 0 && (
+                /* Empty state. Text only.
+
+                   The decorative MessageCircle in a 40px circle is gone: it sat
+                   directly above a line of text that said the same thing, inside
+                   a panel whose header already shows Truffy's avatar and name, so
+                   it was the third "this is a chat" signal in 60 pixels.
+
+                   The per-prompt Cpu / Briefcase / Sparkles icons are gone too.
+                   They were decoration standing in for meaning, and a magic wand
+                   next to "What projects has he built?" tells a reader nothing the
+                   sentence does not already say.
+
+                   The prompts themselves are plain text rows, not cards. A border
+                   and a fill made three suggestions look like three controls
+                   competing with the input below them, in a 360px panel that has
+                   room for one focal point. A leading arrow is enough to say they
+                   are clickable, and the row still brightens on hover.
+
+                   Flush left, while the block stays centred in the panel's
+                   height. Centring the text too gave every row a different
+                   starting x, so the three suggestions had no common edge to
+                   scan down, and each one re-centred as it wrapped. Ragged-left
+                   is the harder thing to read in a narrow column, and this
+                   column is 360px. The arrows now form that left rail, and they
+                   align to the first line rather than to the middle of a row,
+                   so a prompt that wraps to two lines keeps its arrow beside
+                   the line it starts on. */
+                <div className="flex h-full flex-col justify-center py-4">
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    Ask about Manthan&apos;s work, stack, or availability.
+                  </p>
+
+                  <div className="w-full space-y-0.5">
+                    {[
+                      "What did Manthan work on at HashTrust?",
+                      "Tell me about Atomix.",
+                      "What's Manthan's frontend stack?",
+                      "Is Manthan available for a new role?",
+                    ].map((prompt, idx) => (
+                      <motion.button
+                        key={idx}
+                        variants={slideUpVariants}
+                        initial="hidden"
+                        animate="visible"
+                        transition={{ delay: stagger.loose + idx * stagger.tight }}
+                        onClick={() => sendMessage(prompt)}
+                        className="group/prompt flex w-full items-start gap-1.5 py-1 text-left text-xs text-muted-foreground transition-colors duration-base ease-out hover:text-foreground"
+                      >
+                        <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-subtle transition-colors duration-base ease-out group-hover/prompt:text-foreground" />
+                        {prompt}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {messages.map((msg, index) => {
+                const isLast = index === messages.length - 1;
+                const isStreamingThis = isStreaming && isLast && msg.role === "assistant";
+                const showThinking =
+                  msg.role === "assistant" && !msg.content && isStreaming;
+                const showCopy =
+                  msg.role === "assistant" && !!msg.content && !isStreamingThis;
+                return (
+                  <motion.div
+                    key={index}
+                    variants={slideUpVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className={`group/msg flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={cn(
+                        "relative px-3 py-2 text-sm max-w-[85%]",
+                        msg.role === "user"
+                          ? "bg-accent text-accent-foreground rounded-2xl rounded-br-md"
+                          : "bg-card border border-border text-foreground rounded-2xl rounded-bl-md"
+                      )}
+                    >
+                      {showThinking ? (
+                        <TypingDots />
+                      ) : msg.role === "assistant" ? (
+                        <>
+                          <MarkdownMessage content={msg.content} />
+                          {isStreamingThis && (
+                            <span className="ml-0.5 inline-block h-3 w-[2px] -mb-0.5 animate-blink bg-foreground align-baseline" />
+                          )}
+                        </>
+                      ) : (
+                        <span className="whitespace-pre-wrap">{msg.content}</span>
+                      )}
+
+                      {showCopy && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(msg.content, index)}
+                          aria-label="Copy message"
+                          /* Quieter than it was: no ring, no shadow, no circle,
+                             and smaller. It was a bordered floating pill hanging
+                             off the bubble's corner, which is a lot of chrome for
+                             a secondary action that only appears on hover. */
+                          className={cn(
+                            "absolute -bottom-1.5 -right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-md bg-card text-subtle transition-[opacity,color] duration-base ease-out hover:text-foreground",
+                            copiedIndex === index
+                              ? "text-foreground opacity-100"
+                              : "opacity-0 group-hover/msg:opacity-100"
+                          )}
+                        >
+                          <IconSwap
+                            swapped={copiedIndex === index}
+                            from={<Copy className="h-3 w-3" />}
+                            to={<Check className="h-3 w-3" />}
+                          />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+              </div>
+
+              {/* New messages pill — appears when user is scrolled up while content arrives */}
+              <AnimatePresence>
+                {!isAtBottom && messages.length > 0 && (
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      scrollToBottom();
+                      setIsAtBottom(true);
+                    }}
+                    variants={pillUpVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    className="absolute bottom-2 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground shadow-md transition-[color,transform] duration-150 ease-out hover:text-foreground active:scale-[0.94]"
+                  >
+                    <ArrowDown className="h-3 w-3" /> New messages
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Input */}
+            <form onSubmit={handleSubmit} className="border-t border-border bg-card p-3">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={
+                    emailState ? "Type your response..." : "Ask a question..."
+                  }
+                  disabled={isStreaming}
+                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+                />
+                <button
+                  type="submit"
+                  disabled={isStreaming || !message.trim()}
+                  className="flex items-center justify-center h-9 w-9 rounded-lg bg-accent text-accent-foreground hover:opacity-90 transition-[opacity,transform] duration-150 ease-out disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 active:scale-[0.94]"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/** Three pulsing dots, shown in the assistant bubble while waiting for the first token. */
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 py-0.5" aria-label="MG Assistant is typing">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70"
+          style={{
+            animation: "chatDotPulse 1.2s ease-in-out infinite",
+            animationDelay: `${i * 0.15}s`,
+          }}
+        />
+      ))}
+      {/* decorative loop, intentionally local */}
+      <style jsx>{`
+        @keyframes chatDotPulse {
+          0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+          40% { opacity: 1; transform: translateY(-2px); }
+        }
+      `}</style>
+    </span>
+  );
+}
+
+export default S7Bot;

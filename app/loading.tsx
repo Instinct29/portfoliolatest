@@ -1,0 +1,35 @@
+export default function Loading() {
+  return (
+    <div className="fixed inset-0 z-50 flex min-h-screen flex-col items-center justify-center gap-8 bg-background">
+      <div className="relative flex flex-col items-center gap-6">
+        {/* Favicon with subtle pulse */}
+        <div className="relative">
+          <div
+            className="absolute inset-0 animate-pulse rounded-2xl bg-muted blur-xl"
+            aria-hidden
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- A plain <img>
+              is correct here: this renders during a route transition, so a raw
+              tag avoids pulling the image component into the loading boundary
+              to move four kilobytes. The 96px PNG is the smallest icon that
+              still draws cleanly at 56px. */}
+          <img
+            src="/favicon-96x96.png"
+            alt=""
+            width={56}
+            height={56}
+            className="relative size-14 animate-pulse object-contain"
+          />
+        </div>
+
+        {/* Loading bar */}
+        <div className="flex w-48 flex-col items-center gap-2">
+          <div className="h-0.5 w-full overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-1/2 animate-loading-bar rounded-full bg-foreground" />
+          </div>
+          <p className="text-xs text-muted-foreground">Loading</p>
+        </div>
+      </div>
+    </div>
+  );
+}

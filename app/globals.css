@@ -1,0 +1,448 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+:root {
+  /* Paper (light) */
+  --background: 40 33% 98.5%;
+  --foreground: 35 9% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 35 9% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 35 9% 11%;
+  --elevated: 38 20% 95.5%;
+  --primary: 35 9% 11%;
+  --primary-foreground: 40 33% 99%;
+  --secondary: 38 20% 95.5%;
+  --secondary-foreground: 35 9% 11%;
+  --muted: 38 20% 95.5%;
+  --muted-foreground: 35 7% 39%;
+  --subtle: 35 6% 41%;
+  --accent: 35 9% 11%;
+  --accent-foreground: 40 33% 99%;
+  --accent-hover: 35 9% 22%;
+  --destructive: 0 65% 48%;
+  --destructive-foreground: 0 0% 100%;
+  /* The only two hues in the palette that are not paper or ink. They exist so
+     a verdict can be read without reading the word next to it, and they are
+     deliberately desaturated so a list of them still looks like this site. */
+  --good: 150 42% 32%;
+  --caution: 32 80% 38%;
+  --border: 36 16% 89.5%;
+  --border-strong: 36 14% 81%;
+  --input: 36 16% 89.5%;
+  --ring: 35 9% 30%;
+  --radius: 0.75rem;
+  /* sugar-high consumes these DIRECTLY as `color: var(--sh-keyword)`, so unlike
+     every other token here they must be complete colour values, not bare HSL
+     triplets waiting for an hsl() wrapper. Left unwrapped they resolve to an
+     invalid colour and every token falls back to the inherited text colour,
+     which is why code blocks rendered with no highlighting at all. */
+  --sh-class: hsl(35 45% 34%);
+  --sh-identifier: hsl(35 8% 22%);
+  --sh-sign: hsl(35 5% 45%);
+  --sh-string: hsl(150 35% 32%);
+  --sh-keyword: hsl(25 55% 38%);
+  --sh-comment: hsl(35 5% 45%);
+  --sh-jsxliterals: hsl(25 45% 40%);
+  --sh-property: hsl(25 50% 36%);
+  --sh-entity: hsl(180 40% 30%);
+}
+
+  .dark {
+    /* Paper (dark) */
+    --background: 30 7% 5%;
+    --foreground: 35 6% 94%;
+    --card: 30 7% 8.5%;
+    --card-foreground: 35 6% 94%;
+    --popover: 30 7% 12%;
+    --popover-foreground: 35 6% 94%;
+    --elevated: 30 7% 12%;
+    --primary: 35 6% 94%;
+    --primary-foreground: 30 7% 6%;
+    --secondary: 30 6% 15%;
+    --secondary-foreground: 35 6% 86%;
+    --muted: 30 6% 15%;
+    --muted-foreground: 35 6% 63%;
+    --subtle: 30 5% 55%;
+    --accent: 35 8% 94%;
+    --accent-foreground: 30 7% 6%;
+    --accent-hover: 35 8% 84%;
+    --destructive: 0 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+    /* Lifted and desaturated for dark: the light values go muddy on a near
+       black card. */
+    --good: 150 40% 58%;
+    --caution: 36 80% 60%;
+    --border: 30 6% 16%;
+    --border-strong: 30 6% 24%;
+    --input: 30 6% 16%;
+    --ring: 35 6% 70%;
+    /* Complete colour values, not triplets. See the note in :root above. */
+    --sh-class: hsl(38 55% 70%);
+    --sh-identifier: hsl(35 6% 84%);
+    --sh-sign: hsl(35 5% 55%);
+    --sh-string: hsl(150 32% 62%);
+    --sh-keyword: hsl(30 70% 72%);
+    --sh-comment: hsl(35 5% 50%);
+    --sh-jsxliterals: hsl(30 55% 68%);
+    --sh-property: hsl(28 60% 70%);
+    --sh-entity: hsl(180 45% 62%);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    line-height: 1.65;
+    text-rendering: optimizeLegibility;
+    /* Reserve scrollbar space so layout doesn't shift when content overflows. */
+    scrollbar-gutter: stable;
+  }
+
+  /* ── Themed scrollbar ──
+     Thin, neutral, transparent track. Falls back to native on platforms
+     that ignore these (iOS Safari, etc.). The `pre` rule below intentionally
+     keeps code-block scrollbars hidden — higher specificity wins. */
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border-strong)) transparent;
+  }
+
+  /* WebKit / Chromium / Edge */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border-strong));
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    border-radius: 9999px;
+    transition: background-color var(--duration-fast) var(--ease-out);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--subtle));
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--muted-foreground));
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Touch devices: tighter scrollbar so it doesn't crowd small viewports. */
+  @media (max-width: 640px) {
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+}
+
+@layer utilities {
+  .content-bg {
+    background: hsl(var(--card));
+  }
+
+  .card-elevated {
+    background: hsl(var(--card));
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+
+  .dark .card-elevated {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+  }
+
+  /* Ordinal gutter numeral, drawn from `data-index`.
+
+     It lives in CSS rather than in the markup on purpose. The numeral is pure
+     ornament: it counts rows nobody refers to by number, and it duplicates no
+     information the label does not already carry. As a text node at
+     --border-strong it sat at 1.49:1 and axe flagged it, but the only colour
+     that clears 4.5:1 on this background is --subtle, which is exactly the
+     colour of the label beside it. Passing would have meant deleting the
+     hierarchy the numeral exists to create. WCAG exempts pure decoration from
+     the contrast floor, so the honest fix is to stop shipping decoration as
+     content. */
+  .gutter-index::before {
+    content: attr(data-index);
+    margin-right: 0.375rem;
+    color: hsl(var(--border-strong));
+  }
+}
+
+/* Motion tokens — the CSS side of lib/motionVariants.ts. Keep both in sync.
+   Easing is punchier than the browser default; durations follow the same
+   fast/base/med/slow/hero scale as the TS `duration` export. */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-med: 300ms;
+  --duration-slow: 240ms;
+  --duration-hero: 500ms;
+
+  /* Decorative sweeps only, never a state change. Deliberately outside the
+     sub-300ms UI budget: that budget exists so an interface feels responsive to
+     input, and a sheen travelling across a surface is not responding to
+     anything. At 300ms the same sweep reads as a flicker. */
+  --duration-sweep: 700ms;
+
+  /* The dice throw on /card. Outside the sub-300ms UI budget, and unlike
+     the two above it cannot claim to be "not a response to input": it is
+     one. The justification is that the duration is the physics, not a
+     transition. A die that finishes its arc in 300ms reads as a glyph being
+     swapped rather than an object being thrown. */
+  --duration-throw: 700ms;
+}
+
+/* The dice on /card. The dice are made of the card's own paper. These
+   mirror STOCK.definitive and LIGHT.ink in lib/card/ticket.ts, which cannot
+   be read from here: canvas cannot resolve CSS custom properties, so the
+   drawing code keeps its own literals and these two are the deliberate
+   mirror. Fixed regardless of light/dark theme, like the card itself. */
+:root {
+  --dice-stock: #f6f1e5;
+  --dice-ink: #1f1d1a;
+}
+
+/* The card's rise off the deck (and its reverse on the way out), the deck
+   offsets, and the roll pill's fill (CardMinter.tsx / RollPill.tsx).
+   --duration-card-rise mirrors FULL_REVEAL.cardRise.duration and
+   --duration-card-exit mirrors EXIT_REVEAL.sink.duration, both in
+   lib/card/revealSequence.ts; the rise itself is driven by
+   cardRiseVariants (a `motion` variant, not a CSS transition) in
+   lib/motionVariants.ts, which reads those same two values. --duration-flip
+   and --duration-flip-exit mirror FULL_REVEAL.flip.duration and
+   EXIT_REVEAL.flip.duration: the turn stays a plain CSS transition (see
+   cardRiseVariants's own comment for why), and CardMinter reads those
+   durations directly. The remaining four mirror DECK_OFFSET_BACK,
+   DECK_OFFSET_FRONT, CARD_FLIP_EASE, FILL_MS and FILL_EASE in
+   lib/motionVariants.ts. Those are what the components actually import:
+   nothing in this stylesheet reads any of the properties below today. They
+   are documentation mirrors only, kept here so the values are declared as
+   CSS custom properties per the project convention, and so a future
+   CSS-only consumer has them. */
+:root {
+  --duration-card-rise: 500ms;
+  --duration-card-exit: 200ms;
+  --deck-offset-back: translate(6px, 8px) rotate(3deg);
+  --deck-offset-front: translate(-4px, 4px) rotate(-2deg);
+  --duration-flip: 600ms;
+  --duration-flip-exit: 200ms;
+  --ease-flip: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fill: 420ms;
+  --ease-fill: cubic-bezier(0.3, 1, 0.4, 1);
+
+  /* The homepage banner's card fan fling. The overshoot curve
+     matches CARD_RISE_EASE in lib/motionVariants.ts (cards flicking
+     into place). It is duplicated here rather than imported because
+     that constant is private to that module and CardNudge.tsx is
+     CSS-only (no client boundary). If one changes, the other should. */
+  --duration-fan: 450ms;
+  --ease-fan: cubic-bezier(0.3, 1.1, 0.4, 1);
+}
+
+/* Link hover effect */
+a {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    opacity: 0.9;
+  }
+}
+
+/* Reduced motion: fewer and gentler, not zero. Opacity and color still
+   transition because they aid comprehension; movement is what causes
+   motion sickness, so transforms are what we drop. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, color, background-color, border-color, fill, stroke !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* MDX / Prose stylings */
+.prose .anchor {
+  @apply absolute invisible no-underline;
+  margin-left: -1em;
+  padding-right: 0.5em;
+  width: 80%;
+  max-width: 700px;
+  cursor: pointer;
+}
+
+.anchor:hover {
+  @apply visible;
+}
+
+.prose a {
+  @apply underline transition-colors underline-offset-4 decoration-subtle hover:decoration-foreground text-foreground;
+}
+
+.prose .anchor:after {
+  @apply text-muted-foreground;
+  content: "#";
+}
+
+.prose *:hover > .anchor {
+  @apply visible;
+}
+
+.prose pre {
+  @apply rounded-lg overflow-x-auto py-2 px-3 text-sm border bg-card border-border;
+}
+
+.prose code {
+  @apply px-1 py-0.5 rounded-lg bg-card text-card-foreground;
+}
+
+.prose pre code {
+  @apply p-0;
+  line-height: 1.5;
+}
+
+.prose code span {
+  @apply font-medium;
+}
+
+.prose img {
+  @apply m-0;
+}
+
+.prose p {
+  @apply my-4 text-foreground;
+}
+
+.prose h1 {
+  @apply text-3xl font-semibold mt-8 mb-4 tracking-tight text-foreground;
+}
+
+.prose h2 {
+  @apply text-2xl font-semibold mt-8 mb-3 tracking-tight text-foreground;
+}
+
+.prose h3 {
+  @apply text-xl font-semibold mt-6 mb-2 tracking-tight text-foreground;
+}
+
+.prose h4 {
+  @apply text-lg font-semibold mt-6 mb-2 text-foreground;
+}
+
+.prose strong {
+  @apply font-semibold text-foreground;
+}
+
+.prose ul {
+  @apply list-disc pl-6 text-foreground;
+}
+
+.prose ol {
+  @apply list-decimal pl-6 text-foreground;
+}
+
+/* Tables in posts.
+ *
+ * These had no styling because GFM was never enabled on the blog MDX pipeline,
+ * so a pipe table rendered as a run-on paragraph and no post ever contained
+ * one. With `remark-gfm` wired up in `components/common/mdx.tsx`, real table
+ * markup arrives here and needs rules.
+ *
+ * The wrapper scrolls rather than the page: a three-column table of numbers is
+ * fine on a phone, but a wide one would otherwise push the whole article
+ * sideways. `text-left` because every table here starts with a label column. */
+/* No margin here: the scroll wrapper owns it. `overflow-x` makes that wrapper
+ * a block formatting context, so a margin on the table cannot collapse through
+ * it and the two would stack to twice the block step. */
+.prose table {
+  @apply w-full border-collapse text-sm;
+}
+
+/* The scroll container the table used to be. */
+.prose .table-scroll {
+  @apply my-6 overflow-x-auto;
+}
+
+.prose th {
+  @apply border-b border-border py-2 pr-6 text-left font-semibold text-foreground;
+}
+
+.prose td {
+  @apply border-b border-border py-2 pr-6 text-left text-foreground;
+}
+
+.prose tr:last-child td {
+  @apply border-b-0;
+}
+
+.prose > :first-child {
+  margin-top: 1.25em !important;
+  margin-bottom: 1.25em !important;
+}
+
+pre::-webkit-scrollbar {
+  display: none;
+}
+
+pre {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Remove Safari input shadow on mobile */
+input[type="text"],
+input[type="email"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* A table stays a table.
+ *
+ * This used to set `display: block` with `overflow-x: auto` and
+ * `white-space: nowrap`, which made every table on the site scroll sideways
+ * rather than wrap. Two problems with that. Changing a table's `display`
+ * removes its implicit row and cell roles in Safari and Firefox, so a screen
+ * reader announces it as an unstructured run of text with no way to navigate
+ * it. And `nowrap` forced a horizontal scroll even where the content would
+ * have wrapped comfortably, which on a phone is the worse of the two options.
+ *
+ * Scrolling belongs to a wrapper around the table, not to the table itself.
+ * Both callers now provide one. */
+table {
+  @apply w-full border-collapse text-foreground;
+}
+
+.title {
+  text-wrap: balance;
+}

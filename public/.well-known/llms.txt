@@ -1,0 +1,21 @@
+# Manthan Gour — Software Engineer
+
+> Frontend-heavy software engineer with 4+ years shipping production web products in React, Next.js and TypeScript.
+
+## Quick links
+
+- GitHub: https://github.com/Instinct29
+- LinkedIn: https://www.linkedin.com/in/manthan-gour/
+
+## What you'll find
+
+- `/` — homepage with experience, projects, toolkit, FAQ, contact
+- `/work/<org>` — work overview (hashtrust, independent)
+- `/work/<org>/<project>` — project case study
+- `/project/<slug>` — side projects
+- `/cv` — HTML curriculum vitae
+- `/projects` — side projects index
+
+## Contact
+
+Connect via LinkedIn or the contact section on the homepage.

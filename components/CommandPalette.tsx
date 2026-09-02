@@ -1,0 +1,152 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { backdropFadeVariants } from "@/lib/motionVariants";
+import { useDarkMode } from "@/app/hooks/useDarkMode";
+import { buildCommands, filterCommands, type Command } from "@/lib/commandData";
+import { contactEmail } from "@/lib/siteLinks";
+
+export default function CommandPalette() {
+  const router = useRouter();
+  const { toggleDarkMode } = useDarkMode();
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [active, setActive] = useState(0);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  const all = useMemo(() => buildCommands(), []);
+  const results = useMemo(() => filterCommands(all, q), [all, q]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onOpen = () => setOpen(true);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("open-command-palette", onOpen as EventListener);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("open-command-palette", onOpen as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      setQ("");
+      setActive(0);
+    }
+  }, [open]);
+  useEffect(() => setActive(0), [q]);
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+
+  const run = (c: Command) => {
+    setOpen(false);
+    if (c.href) router.push(c.href);
+    else if (c.action === "toggle-theme") toggleDarkMode();
+    else if (c.action === "copy-email" && contactEmail)
+      navigator.clipboard?.writeText(contactEmail);
+    else if (c.action === "open-shortcuts") window.dispatchEvent(new CustomEvent("open-shortcuts"));
+  };
+
+  const onListKey = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => Math.min(a + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => Math.max(a - 1, 0));
+    } else if (e.key === "Enter" && results[active]) {
+      e.preventDefault();
+      run(results[active]);
+    }
+  };
+
+  const groups = ["Navigation", "Projects", "Actions"] as const;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-[60] flex items-start justify-center bg-black/40 px-4 pt-[15vh]"
+          variants={backdropFadeVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          onClick={() => setOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command menu"
+        >
+          <div
+            className="w-full max-w-[540px] overflow-hidden rounded-2xl border border-border-strong bg-elevated shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={onListKey}
+          >
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search projects, sections, actions…"
+              className="w-full border-b border-border bg-transparent px-4 py-4 text-base text-foreground outline-none placeholder:text-subtle"
+              aria-label="Search commands"
+            />
+            <div className="max-h-[50vh] overflow-y-auto p-2">
+              {results.length === 0 && (
+                <div className="px-3 py-6 text-center text-sm text-subtle">No results</div>
+              )}
+              {groups.map((g) => {
+                const items = results.filter((r) => r.group === g);
+                if (items.length === 0) return null;
+                return (
+                  <div key={g} className="mb-1">
+                    <div className="px-3 pb-1 pt-2 font-mono text-2xs uppercase tracking-label text-subtle">{g}</div>
+                    {items.map((c) => {
+                      const idx = results.indexOf(c);
+                      return (
+                        <button
+                          key={c.id}
+                          ref={idx === active ? activeRef : undefined}
+                          onMouseEnter={() => setActive(idx)}
+                          onClick={() => run(c)}
+                          className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm ${
+                            idx === active ? "bg-accent text-accent-foreground" : "text-foreground"
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{c.label}</span>
+                          {c.keys && (
+                            <span className="flex shrink-0 items-center gap-1">
+                              {c.keys.map((k, i) => (
+                                <kbd
+                                  key={`${c.id}-${i}`}
+                                  className={`grid h-[18px] min-w-[18px] place-items-center rounded-md border px-1 font-mono text-2xs ${
+                                    idx === active
+                                      ? "border-accent-foreground/30 text-accent-foreground/80"
+                                      : "border-border-strong text-subtle"
+                                  }`}
+                                >
+                                  {k}
+                                </kbd>
+                              ))}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
