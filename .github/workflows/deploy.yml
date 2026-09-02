@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_BASE_PATH: /portfolio
+          NEXT_PUBLIC_BASE_PATH: /portfoliolatest
           NEXT_PUBLIC_SITE_URL: https://instinct29.github.io
 
       - name: Upload artifact
