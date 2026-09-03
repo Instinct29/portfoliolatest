@@ -1,4 +1,6 @@
 import About from "@/components/About";
+import GameTeaser from "@/components/game/GameTeaser";
+import { GameErrorBoundary } from "@/components/game/GameErrorBoundary";
 import ExperienceWork from "@/components/ExperienceWork";
 import Projects from "@/components/Projects";
 import TechStack from "@/components/TechStack";
@@ -21,6 +23,9 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(profilePageLd()) }}
       />
       <About />
+      <GameErrorBoundary>
+        <GameTeaser />
+      </GameErrorBoundary>
       <ExperienceWork />
       <Projects />
       <TechStack />

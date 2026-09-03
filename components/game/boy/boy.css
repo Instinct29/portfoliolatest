@@ -1,0 +1,474 @@
+.boy-root {
+  display: inline-flex;
+  width: 44px;
+  height: 60px;
+  will-change: transform;
+}
+
+.boy-head,
+.boy-arm-l,
+.boy-arm-r,
+.boy-leg-l,
+.boy-leg-r,
+.boy-torso,
+.boy-tool-box,
+.boy-tool-driver,
+.boy-tool-cloth {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Idle: tiny breath + weight shift */
+.boy-pose-idle {
+  animation: boy-breathe 2.8s var(--ease-out) infinite;
+}
+.boy-pose-idle .boy-head {
+  animation: boy-idle-head 4.2s var(--ease-out) infinite;
+}
+
+.boy-pose-static {
+  /* reduced motion: hold pose, no loops */
+}
+
+/* Enter / exit */
+.boy-pose-enter {
+  animation: boy-cameo-enter var(--duration-slow) var(--ease-out) both;
+}
+.boy-pose-exit {
+  animation: boy-cameo-exit var(--duration-med) var(--ease-out) both;
+}
+
+/* Walk family: legs + opposite arms + bob + lean */
+.boy-pose-walk .boy-leg-l,
+.boy-pose-quick-walk .boy-leg-l,
+.boy-pose-run .boy-leg-l {
+  transform-origin: 22px 36px;
+  animation: boy-leg-l 0.38s ease-in-out infinite;
+}
+.boy-pose-walk .boy-leg-r,
+.boy-pose-quick-walk .boy-leg-r,
+.boy-pose-run .boy-leg-r {
+  transform-origin: 22px 36px;
+  animation: boy-leg-r 0.38s ease-in-out infinite;
+}
+.boy-pose-walk .boy-arm-l,
+.boy-pose-quick-walk .boy-arm-l,
+.boy-pose-run .boy-arm-l {
+  transform-origin: 22px 23px;
+  animation: boy-arm-l 0.38s ease-in-out infinite;
+}
+.boy-pose-walk .boy-arm-r,
+.boy-pose-quick-walk .boy-arm-r,
+.boy-pose-run .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-arm-r 0.38s ease-in-out infinite;
+}
+.boy-pose-walk,
+.boy-pose-quick-walk,
+.boy-pose-run {
+  animation: boy-bob 0.38s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.boy-pose-walk {
+  animation-name: boy-bob-lean;
+}
+.boy-pose-quick-walk {
+  animation-duration: 0.28s;
+}
+.boy-pose-quick-walk .boy-leg-l,
+.boy-pose-quick-walk .boy-leg-r,
+.boy-pose-quick-walk .boy-arm-l,
+.boy-pose-quick-walk .boy-arm-r {
+  animation-duration: 0.28s;
+}
+.boy-pose-run {
+  animation-duration: 0.22s;
+}
+.boy-pose-run .boy-leg-l,
+.boy-pose-run .boy-leg-r,
+.boy-pose-run .boy-arm-l,
+.boy-pose-run .boy-arm-r {
+  animation-duration: 0.22s;
+}
+
+.boy-pose-wave .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-wave 0.5s ease-in-out infinite;
+}
+.boy-pose-point .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-point 0.55s var(--ease-out) both;
+}
+.boy-pose-point .boy-head {
+  animation: boy-point-head 0.55s var(--ease-out) both;
+}
+.boy-pose-shout .boy-arm-l,
+.boy-pose-shout .boy-arm-r,
+.boy-pose-panic .boy-arm-l,
+.boy-pose-panic .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-shout-arm 0.28s ease-in-out infinite alternate;
+}
+.boy-pose-shout,
+.boy-pose-panic {
+  animation: boy-panic-hop 0.34s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.boy-pose-jump,
+.boy-pose-cheer {
+  animation: boy-jump 0.45s ease-in-out infinite;
+}
+.boy-pose-cheer .boy-arm-l,
+.boy-pose-cheer .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-cheer-arm 0.45s ease-in-out infinite;
+}
+.boy-pose-stomp {
+  animation: boy-stomp 0.35s ease-in-out infinite;
+}
+.boy-pose-laugh {
+  animation: boy-laugh 0.32s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+.boy-pose-laugh .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-laugh-arm 0.32s ease-in-out infinite;
+}
+.boy-pose-lean {
+  transform: rotate(8deg);
+  transform-origin: center bottom;
+}
+.boy-pose-shrug .boy-arm-l,
+.boy-pose-shrug .boy-arm-r {
+  transform-origin: 22px 23px;
+  transform: rotate(-28deg);
+}
+.boy-pose-inspect .boy-head {
+  animation: boy-inspect-head 1.2s var(--ease-out) infinite;
+}
+.boy-pose-think .boy-arm-r {
+  transform-origin: 22px 23px;
+  transform: rotate(-55deg) translate(2px, -4px);
+}
+.boy-pose-look .boy-head {
+  animation: boy-look 1.6s var(--ease-out) infinite;
+}
+.boy-pose-reach .boy-arm-r,
+.boy-pose-pull .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-reach 0.7s var(--ease-out) infinite;
+}
+.boy-pose-carry .boy-arm-r,
+.boy-pose-carry .boy-tool-box {
+  transform-origin: 22px 23px;
+  animation: boy-carry-bob 0.5s ease-in-out infinite;
+}
+.boy-pose-carry {
+  animation: boy-bob 0.5s ease-in-out infinite;
+}
+.boy-pose-wrench .boy-arm-r,
+.boy-pose-wrench .boy-tool-driver {
+  transform-origin: 22px 23px;
+  animation: boy-wrench 0.55s ease-in-out infinite;
+}
+.boy-pose-wipe .boy-arm-r,
+.boy-pose-wipe .boy-tool-cloth {
+  transform-origin: 22px 23px;
+  animation: boy-wipe 0.55s ease-in-out infinite;
+}
+.boy-pose-pickup {
+  animation: boy-pickup 0.7s var(--ease-out) both;
+}
+.boy-pose-throw .boy-arm-r {
+  transform-origin: 22px 23px;
+  animation: boy-throw 0.55s var(--ease-out) both;
+}
+
+@keyframes boy-breathe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes boy-idle-head {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  80% {
+    transform: rotate(-6deg);
+  }
+  90% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes boy-leg-l {
+  0%,
+  100% {
+    transform: rotate(18deg);
+  }
+  50% {
+    transform: rotate(-18deg);
+  }
+}
+@keyframes boy-leg-r {
+  0%,
+  100% {
+    transform: rotate(-18deg);
+  }
+  50% {
+    transform: rotate(18deg);
+  }
+}
+@keyframes boy-arm-l {
+  0%,
+  100% {
+    transform: rotate(-16deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+@keyframes boy-arm-r {
+  0%,
+  100% {
+    transform: rotate(16deg);
+  }
+  50% {
+    transform: rotate(-16deg);
+  }
+}
+@keyframes boy-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes boy-bob-lean {
+  0%,
+  100% {
+    transform: translateY(0) rotate(2deg);
+  }
+  50% {
+    transform: translateY(-2px) rotate(4deg);
+  }
+}
+@keyframes boy-wave {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(-58deg);
+  }
+}
+@keyframes boy-point {
+  0% {
+    transform: rotate(10deg);
+  }
+  35% {
+    transform: rotate(-8deg);
+  }
+  100% {
+    transform: rotate(-42deg) translate(2px, -2px);
+  }
+}
+@keyframes boy-point-head {
+  0% {
+    transform: rotate(0);
+  }
+  100% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes boy-shout-arm {
+  from {
+    transform: rotate(-45deg) translateY(-2px);
+  }
+  to {
+    transform: rotate(40deg) translateY(-4px);
+  }
+}
+@keyframes boy-panic-hop {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(3deg);
+  }
+}
+@keyframes boy-jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes boy-cheer-arm {
+  0%,
+  100% {
+    transform: rotate(-50deg);
+  }
+  50% {
+    transform: rotate(-80deg);
+  }
+}
+@keyframes boy-stomp {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(2px) scaleY(0.92);
+  }
+}
+@keyframes boy-laugh {
+  0%,
+  100% {
+    transform: rotate(-4deg) translateY(0);
+  }
+  50% {
+    transform: rotate(4deg) translateY(-2px);
+  }
+}
+@keyframes boy-laugh-arm {
+  0%,
+  100% {
+    transform: rotate(20deg);
+  }
+  50% {
+    transform: rotate(45deg);
+  }
+}
+@keyframes boy-inspect-head {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(8deg);
+  }
+}
+@keyframes boy-look {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+@keyframes boy-reach {
+  0%,
+  100% {
+    transform: rotate(-20deg);
+  }
+  50% {
+    transform: rotate(-55deg) translate(3px, -2px);
+  }
+}
+@keyframes boy-carry-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+@keyframes boy-wrench {
+  0%,
+  100% {
+    transform: rotate(-20deg);
+  }
+  50% {
+    transform: rotate(25deg);
+  }
+}
+@keyframes boy-wipe {
+  0%,
+  100% {
+    transform: rotate(-15deg) translateX(0);
+  }
+  50% {
+    transform: rotate(25deg) translateX(4px);
+  }
+}
+@keyframes boy-pickup {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(4px) scaleY(0.94);
+  }
+  70% {
+    transform: translateY(-4px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes boy-throw {
+  0% {
+    transform: rotate(10deg);
+  }
+  40% {
+    transform: rotate(-30deg);
+  }
+  100% {
+    transform: rotate(50deg);
+  }
+}
+
+/* Cameo enter/exit */
+.boy-cameo {
+  display: inline-flex;
+  will-change: transform, opacity;
+}
+.boy-cameo-enter {
+  animation: boy-cameo-enter var(--duration-slow) var(--ease-out) both;
+}
+.boy-cameo-exit {
+  animation: boy-cameo-exit var(--duration-fast) var(--ease-out) both;
+}
+@keyframes boy-cameo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes boy-cameo-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boy-root,
+  .boy-root * {
+    animation: none !important;
+  }
+  .boy-cameo-enter,
+  .boy-cameo-exit {
+    animation: none !important;
+  }
+}

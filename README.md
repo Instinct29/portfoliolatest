@@ -102,6 +102,50 @@ Set `contactEmail` in `lib/siteLinks.ts`. When empty, LinkedIn is used as the pr
 
 GitHub Pages is no longer used — the chatbot requires server-side API routes.
 
+## Definitely Possible — Beta
+
+100-level psychological puzzle game on the homepage teaser and `/play`.
+
+**Beta label** means the game is live and evolving (level balance, polish). It does not mean broken progression, fake leaderboards, or unusable mobile.
+
+### Product model (locked)
+
+- **One session:** unfinished progress is memory-only. Refresh / close abandons the run and the next play starts at Level 1.
+- **Failure:** resolve once, brief feedback, then `nextLevel = max(1, current - 5)`. No lives, hearts, checkpoints, or mistake HUD.
+- **Success:** advance one level. Snappy transitions; no giant “LEVEL COMPLETE” cards.
+- **L96 exception:** a wrong micro-round restarts the exam at round 1 only. It does **not** also apply global −5.
+- **Durable client data:** personal best time, secrets, completed-run count after a full finish only.
+- **Leaderboard:** optional Postgres; ranks by **fastest legitimate completion time**. Score is display-only. Assisted / debug / hint runs are unranked. Missing DB ≠ “assisted”; play stays local.
+
+### Architecture
+
+- `lib/game/` — run reducer, memory ownership / rollback, deterministic RNG (`randomFor`), scoring, validation
+- `lib/game/levels/` — chunks of 25 levels, lazy-loaded via `registry.ts`
+- `lib/game/leaderboard/` — memory stub + Postgres store (`pg`)
+- `components/game/` — shell, teaser, transitions, completion, leaderboard, boy / L100 cinematic
+- `app/api/game/{start,progress,finish,leaderboard}` — server-authoritative start / progress / finish
+- `docs/game-schema.sql` — schema for `game_runs` + `game_scores`
+
+Progress payloads use `{ runId, event: "success" | "failure", level }` where `level` is the level being resolved. The server computes the next level and rejects impossible jumps.
+
+### Leaderboard setup (optional)
+
+1. Provision Postgres and set `DATABASE_URL` or `POSTGRES_URL`
+2. Run `docs/game-schema.sql` once
+3. Ensure `pg` is installed (already in `package.json`)
+4. Redeploy
+
+Without DB config the game and local personal bests still work; the panel shows “Leaderboard unavailable.”
+
+Rate limits on API routes are per-instance (fine for a portfolio game; not a global edge limiter).
+
+### Development
+
+- Jump (dev only): `/play?level=68` (marks the run debug / unranked)
+- Personal best key: `mg-definitely-possible-best-v2` (legacy unfinished-run keys are wiped)
+- Tests: `npm test`
+- Do not publish puzzle solutions in public docs
+
 ## Custom Domain
 
 Set `NEXT_PUBLIC_SITE_URL` to your custom domain in Vercel environment variables.

@@ -45,6 +45,9 @@ const nextConfig = {
     // production build / deployment.
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    serverComponentsExternalPackages: ["pg"],
+  },
   async headers() {
     return [
       {

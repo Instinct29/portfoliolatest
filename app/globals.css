@@ -446,3 +446,80 @@ table {
 .title {
   text-wrap: balance;
 }
+
+/* Definitely Possible — level stage transitions */
+.game-level-stage {
+  will-change: transform, opacity;
+}
+.game-level-enter {
+  animation: game-level-enter var(--duration-slow) var(--ease-out) both;
+}
+.game-level-exit {
+  animation: game-level-exit var(--duration-base) var(--ease-out) both;
+}
+.game-level-fail {
+  animation: game-level-fail var(--duration-med) var(--ease-out) both;
+}
+.game-level-hold {
+  opacity: 1;
+}
+@keyframes game-level-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes game-level-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes game-level-fail {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+.game-life-pulse {
+  animation: game-life-pulse var(--duration-med) var(--ease-out) both;
+}
+@keyframes game-life-pulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-level-enter,
+  .game-level-exit,
+  .game-level-fail,
+  .game-life-pulse {
+    animation: none !important;
+  }
+}
