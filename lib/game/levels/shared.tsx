@@ -22,7 +22,7 @@ export function PuzzleRoot({
 }) {
   return (
     <div
-      className={`relative flex min-h-[12rem] flex-col items-center justify-center gap-6 px-4 py-8 ${className}`}
+      className={`relative flex min-h-[12rem] flex-col gap-6  py-8 ${className}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onBackgroundClick?.();
       }}

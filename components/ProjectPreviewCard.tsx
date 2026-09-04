@@ -47,7 +47,8 @@ export default function ProjectPreviewCard({ project }: { project: ProjectCardDa
           src={project.thumbnail}
           alt=""
           fill
-          sizes="80px"
+          sizes="(min-resolution: 2dppx) 160px, 80px"
+          quality={85}
           className="object-cover grayscale transition-[filter] duration-base ease-out group-hover:grayscale-0"
         />
       </span>

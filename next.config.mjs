@@ -38,6 +38,12 @@ const nextConfig = {
         hostname: "*.mzstatic.com",
         pathname: "/image/thumb/**",
       },
+      // Book cover thumbnails for the Reading section (Open Library).
+      {
+        protocol: "https",
+        hostname: "covers.openlibrary.org",
+        pathname: "/b/**",
+      },
     ],
   },
   eslint: {

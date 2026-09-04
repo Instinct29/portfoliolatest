@@ -10,6 +10,7 @@ import { BETA_LABEL, TOTAL_LEVELS } from "@/lib/game/constants";
 import { formatElapsed } from "@/lib/game/scoring";
 import { elapsedSeconds } from "@/lib/game/runReducer";
 import LevelRenderer from "./LevelRenderer";
+import HomeRunner from "./HomeRunner";
 
 export default function GameTeaser() {
   const ctrl = useGameController({ teaser: true });
@@ -68,9 +69,15 @@ export default function GameTeaser() {
       aria-label="Definitely Possible teaser"
     >
       <Container width="reading">
-        <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
-          A small distraction
+        <div className="flex flex-row justify-between">
+             <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
+          A small distraction 
         </p>
+          <p className="text-2xs justify-center align-middle font-medium uppercase tracking-label text-muted-foreground mx-auto animate-blink">
+           Play Play Play 🎮
+        </p>
+        </div>
+     
         <h2 className="mt-2 text-xl font-semibold tracking-tight text-foreground">
           Definitely Possible{" "}
           <span className="align-middle text-2xs font-medium tracking-label text-muted-foreground">
@@ -83,66 +90,87 @@ export default function GameTeaser() {
           How hard could it be?
         </p>
 
-        {completed ? (
-          <div className="mt-6 space-y-3">
-            <p className="text-sm font-medium text-foreground">
-              {allSecrets
-                ? "YOU FINISHED EVERYTHING."
-                : "YOU ACTUALLY FINISHED IT."}
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          {/* Left: Level 1 demo */}
+          <div className="space-y-3">
+            <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
+              Level 1 / 100
             </p>
-            <p className="font-mono text-sm tabular-nums text-muted-foreground">
-              {TOTAL_LEVELS} / {TOTAL_LEVELS}
-              <br />
-              {formatElapsed(elapsedSeconds(run))}
-              <br />
-              Secrets {run.secrets.length} / 7
+
+            {completed ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-foreground">
+                  {allSecrets
+                    ? "YOU FINISHED EVERYTHING."
+                    : "YOU ACTUALLY FINISHED IT."}
+                </p>
+                <p className="font-mono text-sm tabular-nums text-muted-foreground">
+                  {TOTAL_LEVELS} / {TOTAL_LEVELS}
+                  <br />
+                  {formatElapsed(elapsedSeconds(run))}
+                  <br />
+                  Secrets {run.secrets.length} / 7
+                </p>
+                {allSecrets && (
+                  <Link
+                    href="/after-hours"
+                    className="inline-block text-sm font-medium text-foreground underline underline-offset-4"
+                  >
+                    OPEN THE DOOR →
+                  </Link>
+                )}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => ctrl.startNewRun()}
+                    className="text-sm font-medium text-foreground underline underline-offset-4"
+                  >
+                    Play again →
+                  </button>
+                </div>
+              </div>
+            ) : teaserSolved || run.level1Complete ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Fine.</p>
+                <Link
+                  href="/play"
+                  className="inline-block text-sm font-medium text-foreground underline underline-offset-4 animate-pulse"
+                >
+                  Continue playing →
+                </Link>
+              </div>
+            ) : (
+              <div data-teaser>
+                <LevelRenderer
+                  key={`teaser-${state.failureKey}`}
+                  level={1}
+                  props={levelProps}
+                />
+                {state.failureMessage && (
+                  <p
+                    key={state.failureKey}
+                    className="mt-3 text-sm text-muted-foreground"
+                    role="status"
+                  >
+                    {state.failureMessage}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Endless runner */}
+          <div className="flex flex-col gap-3">
+            <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
+              Endless runner
             </p>
-            {allSecrets && (
-              <Link
-                href="/after-hours"
-                className="inline-block text-sm font-medium text-foreground underline underline-offset-4"
-              >
-                OPEN THE DOOR →
-              </Link>
-            )}
-            <div>
-              <button
-                type="button"
-                onClick={() => ctrl.startNewRun()}
-                className="text-sm font-medium text-foreground underline underline-offset-4"
-              >
-                Play again →
-              </button>
-            </div>
+            
+            <HomeRunner reduced={reducedMotion} />
+            <p className="text-xs text-muted-foreground">
+              While you wait. Jump over things. Don&apos;t die.
+            </p>
           </div>
-        ) : teaserSolved || run.level1Complete ? (
-          <div className="mt-6 space-y-3">
-            <p className="text-sm text-muted-foreground">Fine.</p>
-            <Link
-              href="/play"
-              className="inline-block text-sm font-medium text-foreground underline underline-offset-4"
-            >
-              Continue playing →
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-6">
-            <LevelRenderer
-              key={`teaser-${state.failureKey}`}
-              level={1}
-              props={levelProps}
-            />
-            {state.failureMessage && (
-              <p
-                key={state.failureKey}
-                className="mt-3 text-center text-sm text-muted-foreground"
-                role="status"
-              >
-                {state.failureMessage}
-              </p>
-            )}
-          </div>
-        )}
+        </div>
 
         <GlobalTeaserLine />
       </Container>

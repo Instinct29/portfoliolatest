@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { track } from "@vercel/analytics";
 import type { GameRun } from "@/lib/game/types";
-import { paranoiaPercent } from "@/lib/game/scoring";
+import type { LeaderboardEntry } from "@/lib/game/types";
+import { formatElapsed } from "@/lib/game/scoring";
 import { validateDisplayName } from "@/lib/game/validation";
 import { BETA_LABEL } from "@/lib/game/constants";
+
+type SubmitResult = { score: number; elapsedSeconds: number };
+type LBState = "idle" | "loading" | "loaded" | "error";
 
 export default function CompletionScreen({
   run,
@@ -24,24 +28,58 @@ export default function CompletionScreen({
   onPlayAgain: () => void;
 }) {
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(run.submitted);
-  const allSecrets = run.secrets.length >= 7;
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
+  const [lbState, setLbState] = useState<LBState>("idle");
+  const [lbEntries, setLbEntries] = useState<LeaderboardEntry[]>([]);
+
   const assisted =
     run.runMode === "assisted" ||
     run.runMode === "debug" ||
     run.hintsUsed > 0 ||
     run.skipsUsed > 0;
 
+  const submitted = run.submitted || submitResult !== null;
+
+  // When the run was already submitted (e.g. idempotent re-open), load the leaderboard straight away.
+  useEffect(() => {
+    if (run.submitted && lbState === "idle") {
+      loadLeaderboard();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run.submitted]);
+
+  async function loadLeaderboard() {
+    setLbState("loading");
+    try {
+      const res = await fetch("/api/game/leaderboard");
+      if (!res.ok) throw new Error("unavailable");
+      const data = (await res.json()) as {
+        configured: boolean;
+        entries: LeaderboardEntry[];
+      };
+      if (!data.configured) {
+        setLbState("error");
+        return;
+      }
+      setLbEntries(data.entries ?? []);
+      setLbState("loaded");
+    } catch {
+      setLbState("error");
+    }
+  }
+
   const submit = async () => {
     const v = validateDisplayName(name);
     if (!v.ok) {
-      setError(v.error ?? "Invalid name.");
+      setNameError(v.error ?? "Invalid name.");
       return;
     }
+    setNameError(null);
+    setSubmitError(null);
     setSubmitting(true);
-    setError(null);
     try {
       const res = await fetch("/api/game/finish", {
         method: "POST",
@@ -58,21 +96,24 @@ export default function CompletionScreen({
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "Submission failed.");
+        setSubmitError(data.error ?? "Submission failed. Try again.");
         return;
       }
+      const data = (await res.json()) as SubmitResult;
       track("score_submitted");
-      setDone(true);
+      setSubmitResult(data);
       onSubmitted();
+      void loadLeaderboard();
     } catch {
-      setError("Leaderboard unavailable.");
+      setSubmitError("Leaderboard unavailable. Check your connection.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
+      {/* Header */}
       <div>
         <p className="text-2xs font-medium uppercase tracking-label text-muted-foreground">
           Definitely Possible{" "}
@@ -80,12 +121,17 @@ export default function CompletionScreen({
             {BETA_LABEL}
           </span>
         </p>
-        <p className="mt-2 text-2xl font-semibold text-foreground">
-          {run.secrets.length < 7 ? "100 / 100" : "YOU FINISHED EVERYTHING."}
+        <p className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+          YOU FINISHED IT.
         </p>
       </div>
 
+      {/* Stats */}
       <dl className="grid gap-2 font-mono text-sm tabular-nums">
+        <div className="flex justify-between gap-4">
+          <dt className="text-muted-foreground">LEVEL</dt>
+          <dd className="text-foreground">100 / 100</dd>
+        </div>
         <div className="flex justify-between gap-4">
           <dt className="text-muted-foreground">TIME</dt>
           <dd className="text-foreground">{elapsed}</dd>
@@ -94,82 +140,167 @@ export default function CompletionScreen({
           <dt className="text-muted-foreground">SECRETS</dt>
           <dd className="text-foreground">{run.secrets.length} / 7</dd>
         </div>
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted-foreground">SCORE</dt>
-          <dd className="text-foreground">{score.toLocaleString()}</dd>
-        </div>
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted-foreground">Paranoia</dt>
-          <dd className="text-foreground">
-            {paranoiaPercent(run.failCount)}%
-          </dd>
-        </div>
+        {!rankedEligible && !assisted && (
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">SCORE</dt>
+            <dd className="text-foreground">{score.toLocaleString()}</dd>
+          </div>
+        )}
       </dl>
 
-      <p className="max-w-md text-sm text-muted-foreground">
-        You spent{" "}
-        {elapsed.split(":")[0] === "00"
-          ? "a few minutes"
-          : `${elapsed.split(":")[0]} minutes`}{" "}
-        learning not to trust buttons.
-        <br />
-        This achievement has no professional value.
-      </p>
-
+      {/* Unranked message */}
       {assisted && (
         <p className="text-sm text-muted-foreground">
-          Completed — unranked (assisted)
+          Completed — unranked (assisted run).
         </p>
       )}
-
-      {!assisted && !rankedEligible && (
+      {!assisted && !rankedEligible && !submitted && (
         <p className="text-sm text-muted-foreground">
           Global leaderboard unavailable. Your completion still counts locally.
         </p>
       )}
 
-      {rankedEligible && !done && (
-        <div className="space-y-3">
-          <label className="block text-sm text-muted-foreground">
-            Display name
+      {/* Submission form */}
+      {rankedEligible && !submitted && (
+        <div className="space-y-4 border-t border-border pt-8">
+          <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
+            Name for the leaderboard
+          </p>
+          <div className="space-y-3">
             <input
               type="text"
               value={name}
               maxLength={18}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full max-w-xs rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"
-              placeholder="Your name"
+              autoComplete="off"
+              spellCheck={false}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (nameError) setNameError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void submit();
+              }}
+              className="w-full max-w-xs rounded-md border border-border bg-card px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-border-strong focus:outline-none"
+              placeholder="your name"
             />
-          </label>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={submit}
-            className="rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-foreground hover:bg-elevated disabled:opacity-50"
-          >
-            {submitting ? "Submitting…" : "SUBMIT SCORE"}
-          </button>
+            {nameError && (
+              <p className="text-sm text-destructive">{nameError}</p>
+            )}
+            {submitError && (
+              <p className="text-sm text-destructive">{submitError}</p>
+            )}
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => void submit()}
+              className="rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-foreground hover:bg-elevated disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {submitting ? "Submitting…" : "SUBMIT SCORE"}
+            </button>
+          </div>
         </div>
       )}
 
-      {done && rankedEligible && (
-        <p className="text-sm text-muted-foreground">Score submitted.</p>
+      {/* Post-submission result + leaderboard */}
+      {submitted && (
+        <div className="space-y-8 border-t border-border pt-8">
+          {submitResult && (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
+                Your result
+              </p>
+              <dl className="mt-3 grid gap-2 font-mono text-sm tabular-nums">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">TIME</dt>
+                  <dd className="text-foreground">
+                    {formatElapsed(submitResult.elapsedSeconds)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">SECRETS</dt>
+                  <dd className="text-foreground">{run.secrets.length} / 7</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-muted-foreground">SCORE</dt>
+                  <dd className="text-foreground">
+                    {submitResult.score.toLocaleString()}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
+          {/* Leaderboard */}
+          <div>
+            <p className="text-xs font-medium uppercase tracking-label text-muted-foreground">
+              Global leaderboard
+            </p>
+            {lbState === "loading" && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Loading scores…
+              </p>
+            )}
+            {lbState === "error" && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Leaderboard unavailable.
+              </p>
+            )}
+            {lbState === "loaded" && lbEntries.length === 0 && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                No ranked completions yet — yours may be first.
+              </p>
+            )}
+            {lbState === "loaded" && lbEntries.length > 0 && (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[22rem] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-2xs uppercase tracking-label text-muted-foreground">
+                      <th className="py-2 pr-4">#</th>
+                      <th className="py-2 pr-4">Player</th>
+                      <th className="py-2 pr-4">Time</th>
+                      <th className="py-2">Secrets</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lbEntries.map((e) => (
+                      <tr
+                        key={`${e.rank}-${e.displayName}`}
+                        className="border-b border-border/50 tabular-nums"
+                      >
+                        <td className="py-2 pr-4 font-mono">{e.rank}</td>
+                        <td className="py-2 pr-4">{e.displayName}</td>
+                        <td className="py-2 pr-4 font-mono">
+                          {formatElapsed(e.elapsedSeconds)}
+                        </td>
+                        <td className="py-2 font-mono">{e.secretsFound}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
-      {!rankedEligible && error && (
-        <p className="text-sm text-muted-foreground">{error}</p>
-      )}
+      {/* Navigation */}
+      <div className="flex flex-wrap items-center gap-4 border-t border-border pt-8">
+        <button
+          type="button"
+          onClick={onPlayAgain}
+          className="text-sm font-medium text-foreground underline underline-offset-4 hover:no-underline"
+        >
+          PLAY AGAIN
+        </button>
+        <Link
+          href="/"
+          className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground hover:no-underline"
+        >
+          ← Back to portfolio
+        </Link>
+      </div>
 
-      <button
-        type="button"
-        onClick={onPlayAgain}
-        className="block text-sm font-medium text-foreground underline underline-offset-4"
-      >
-        PLAY AGAIN
-      </button>
-
-      {allSecrets && (
+      {run.secrets.length >= 7 && (
         <Link
           href="/after-hours"
           className="block text-sm font-medium text-foreground underline underline-offset-4"
@@ -177,23 +308,6 @@ export default function CompletionScreen({
           OPEN THE DOOR →
         </Link>
       )}
-
-      <Link
-        href="/"
-        className="block text-sm text-muted-foreground underline underline-offset-4"
-      >
-        ← Back to Manthan
-      </Link>
-
-      <div className="border-t border-border pt-8">
-        <p className="text-sm text-muted-foreground">Since you&apos;re still here…</p>
-        <Link
-          href="/#experience"
-          className="mt-2 inline-block text-sm font-medium text-foreground underline underline-offset-4"
-        >
-          See what I actually build →
-        </Link>
-      </div>
     </div>
   );
 }

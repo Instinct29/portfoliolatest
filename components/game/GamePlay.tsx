@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { useSearchParams } from "next/navigation";
@@ -13,26 +12,11 @@ import LevelRenderer from "./LevelRenderer";
 import LevelTransition from "./LevelTransition";
 import CompletionScreen from "./CompletionScreen";
 
-const LeaderboardPanel = dynamic(() => import("./LeaderboardPanel"), {
-  ssr: false,
-  loading: () => (
-    <p className="text-sm text-muted-foreground">Loading scores…</p>
-  ),
-});
-
-const OutroCinematic = dynamic(
-  () => import("./boy/OutroCinematic").then((m) => m.default),
-  { ssr: false }
-);
-
-const OUTRO_KEY = (runId: string) => `dp-outro-done:${runId}`;
-
 export default function GamePlay() {
   const ctrl = useGameController();
   const reducedMotion = useReducedMotion() ?? false;
   const searchParams = useSearchParams();
   const [tick, setTick] = useState(0);
-  const [outroDone, setOutroDone] = useState(false);
   const {
     state,
     hydrated,
@@ -72,26 +56,6 @@ export default function GamePlay() {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, [run.runMode, run.completed, tick]);
-
-  useEffect(() => {
-    if (!run.completed || !run.runId) return;
-    try {
-      if (sessionStorage.getItem(OUTRO_KEY(run.runId)) === "1") {
-        setOutroDone(true);
-      }
-    } catch {
-      /* private mode */
-    }
-  }, [run.completed, run.runId]);
-
-  const markOutroDone = useCallback(() => {
-    setOutroDone(true);
-    try {
-      sessionStorage.setItem(OUTRO_KEY(run.runId), "1");
-    } catch {
-      /* private mode */
-    }
-  }, [run.runId]);
 
   const onActivate = useCallback(() => {
     void activate();
@@ -152,12 +116,6 @@ export default function GamePlay() {
   }
 
   if (run.completed) {
-    const showOutro = run.level >= TOTAL_LEVELS && !outroDone;
-
-    if (showOutro) {
-      return <OutroCinematic onFinished={markOutroDone} />;
-    }
-
     return (
       <Container width="reading" className="py-8 md:py-12">
         <CompletionScreen
@@ -168,9 +126,6 @@ export default function GamePlay() {
           onSubmitted={() => dispatch({ type: "SUBMITTED" })}
           onPlayAgain={() => ctrl.startNewRun()}
         />
-        <div className="mt-12">
-          <LeaderboardPanel />
-        </div>
       </Container>
     );
   }

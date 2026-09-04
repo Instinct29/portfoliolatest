@@ -523,3 +523,19 @@ table {
     animation: none !important;
   }
 }
+
+/* Homepage teaser: left-align puzzle content without touching full /play layout */
+[data-teaser] .text-center {
+  text-align: left;
+}
+[data-teaser] .justify-center {
+  justify-content: flex-start;
+}
+[data-teaser] .items-center:not([data-teaser-keep-center]) {
+  align-items: flex-start;
+}
+[data-teaser] [class*="min-h-"] {
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}

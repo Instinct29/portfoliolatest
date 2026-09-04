@@ -5,6 +5,8 @@ import ExperienceWork from "@/components/ExperienceWork";
 import Projects from "@/components/Projects";
 import TechStack from "@/components/TechStack";
 import Activity from "@/components/Activity";
+import Writing from "@/components/Writing";
+import Reading from "@/components/Reading";
 import Faq from "@/components/Faq";
 import Socials from "@/components/Socials";
 import ChatBotMount from "@/components/ChatBotMount";
@@ -30,6 +32,8 @@ export default function Home() {
       <Projects />
       <TechStack />
       <Activity />
+      <Writing />
+      <Reading />
       <Faq />
       {/* Last section on the page, directly above the footer rendered from
           `app/layout.tsx`. It carries the visitor-card nudge at its foot:
