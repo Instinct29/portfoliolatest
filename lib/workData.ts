@@ -107,7 +107,7 @@ export const organizations: TOrganization[] = [
     id: "hashtrust",
     slug: "hashtrust",
     name: "HashTrust Technologies",
-    logo: "/images/orgs/hashtrust-logo.png",
+    logo: "/images/orgs/hashtrust.ico",
     role: "Software Developer",
     employment: "full-time",
     period: { start: "09.2022", end: "04.2025" },
